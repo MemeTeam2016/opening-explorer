@@ -6,6 +6,9 @@ import { Board } from './explorer.js';
 const $ = (id) => document.getElementById(id);
 const TIME_CLASSES = ['bullet', 'blitz', 'rapid', 'classical', 'daily'];
 const SHOW_STEP = 200;
+const API_VERSION = 2; // must match serve.mjs
+const MIN_SECONDS = 0.1;
+const MAX_SECONDS = 600;
 
 const posKey = (fen) => fen.split(' ').slice(0, 4).join(' ');
 const fmtInt = (n) => n.toLocaleString('en-US');
@@ -65,6 +68,9 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     mode: 'dates', from: '', to: '', last: 100, // mode: 'dates' (date range) or 'last' (last N games)
     ...(prefs.an || {}),
   });
+  if (!(Number.isFinite(an.seconds) && an.seconds > 0)) an.seconds = 10;
+  if (!(Number.isFinite(an.last) && an.last >= 1)) an.last = 100;
+  if (!(Number.isFinite(an.move) && an.move >= 1)) an.move = 10;
   let server = null; // { engine, min, max } once the local server answers
   const movetime = () => Math.round(an.seconds * 1000);
   let groups = []; // [{ key, fen, games: [gi], lines: Map(line -> count) }]
@@ -152,7 +158,14 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     if (location.protocol === 'file:') { renderEngine(); return; }
     try {
       const s = await api('/api/status');
-      server = { engine: s.engine, min: s.minMovetime / 1000, max: s.maxMovetime / 1000 };
+      // A server started before an update answers without these fields; fall back to defaults.
+      const sec = (ms, dflt) => (Number.isFinite(ms) ? ms / 1000 : dflt);
+      server = {
+        engine: s.engine,
+        outdated: s.apiVersion !== API_VERSION,
+        min: sec(s.minMovetime, MIN_SECONDS),
+        max: sec(s.maxMovetime, MAX_SECONDS),
+      };
       $('an-seconds').min = server.min;
       $('an-seconds').max = server.max;
     } catch { server = null; }
@@ -226,6 +239,9 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     } else if (!server) {
       el.textContent = 'Can’t reach the local server. Is it still running?';
       el.className = 'an-engine warn';
+    } else if (server.outdated) {
+      el.innerHTML = 'The local server is from an older version of this tool. Close the <b>Open Analysis</b> window (or stop <code>npm run serve</code>), start it again, then reload this page.';
+      el.className = 'an-engine warn';
     } else if (!server.engine || !server.engine.ok) {
       el.innerHTML = 'Stockfish wasn’t found. Put it in the <code>engine</code> folder or set <code>"stockfish"</code> in config.json, then restart the server.';
       el.className = 'an-engine warn';
@@ -278,7 +294,7 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     $('an-est').innerHTML = !selected.games ? ''
       : p.pos === 0 ? 'All of these positions are already analyzed.'
       : `Estimated time: <b>${fmtDuration(est)}</b> <span class="muted">(${fmtInt(p.games)} games × ${sec} s${p.games !== selected.games ? `; ${fmtInt(selected.games - p.games)} already analyzed` : ''}). Repeated positions run once, so it may finish sooner.</span>`;
-    const canRun = !!(server && server.engine && server.engine.ok) && p.pos > 0 && !running();
+    const canRun = !!(server && !server.outdated && server.engine && server.engine.ok) && p.pos > 0 && !running();
     $('an-run').disabled = !canRun;
     $('an-go').textContent = `Start · about ${fmtDuration(est)}`;
     $('an-confirm-text').innerHTML = `Stockfish will analyze <b>${fmtInt(p.pos)}</b> positions from <b>${fmtInt(p.games)}</b> games, ${sec} s each. Estimated time: <b>${fmtDuration(est)}</b>. You can stop at any time; finished positions are kept.`;
@@ -371,10 +387,11 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
   }
   $('an-seconds').addEventListener('change', () => {
     const v = Number($('an-seconds').value);
-    const lo = server ? server.min : 0.1;
-    const hi = server ? server.max : 600;
+    const lo = server ? server.min : MIN_SECONDS;
+    const hi = server ? server.max : MAX_SECONDS;
     // Out-of-range values snap to the limits; an empty or invalid box keeps the old value.
-    if ($('an-seconds').value !== '' && Number.isFinite(v)) an.seconds = Math.min(hi, Math.max(lo, Math.round(v * 10) / 10));
+    const clamped = Math.min(hi, Math.max(lo, Math.round(v * 10) / 10));
+    if ($('an-seconds').value !== '' && Number.isFinite(clamped)) an.seconds = clamped;
     // Evals are only shown if they were searched at least this long, so look them up again.
     evals = {};
     changed();

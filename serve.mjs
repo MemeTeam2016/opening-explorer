@@ -17,6 +17,8 @@ import { Engine, findStockfish } from './engine.mjs';
 const root = fileURLToPath(new URL('.', import.meta.url));
 const dataDir = process.env.EXPLORER_DATA_DIR || join(root, 'data');
 const port = Number(process.env.PORT) || 5175;
+// Bump when the API changes, so an open page can tell that this server is out of date.
+const API_VERSION = 2;
 const DEFAULT_MOVETIME = 10000;
 const MIN_MOVETIME = 100;
 const MAX_MOVETIME = 600000; // 10 minutes per position
@@ -133,7 +135,7 @@ async function api(req, res, path) {
     if (engine && !engine.name) { try { await engine.start(); } catch { /* reported below */ } }
     return send(res, 200, {
       engine: engine ? { name: engine.name, ok: !!engine.name } : null,
-      defaultMovetime: DEFAULT_MOVETIME, minMovetime: MIN_MOVETIME, maxMovetime: MAX_MOVETIME,
+      apiVersion: API_VERSION, defaultMovetime: DEFAULT_MOVETIME, minMovetime: MIN_MOVETIME, maxMovetime: MAX_MOVETIME,
       cachedPositions: Object.keys(evals.entries).length, job: jobView(false),
     });
   }
@@ -181,6 +183,14 @@ createServer(async (req, res) => {
   } catch (e) {
     if (!res.headersSent) send(res, path.startsWith('/api/') ? 400 : 404, { error: e.message });
   }
+}).on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`Port ${port} is already in use: the server is probably already running in another window.`);
+    console.error(`Use that one (open http://localhost:${port}), or close it and start this again.`);
+  } else {
+    console.error(`Server error: ${e.message}`);
+  }
+  process.exit(1);
 }).listen(port, '127.0.0.1', () => {
   const url = `http://localhost:${port}`;
   console.log(`Opening Explorer: ${url}`);

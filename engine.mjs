@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { cpus, homedir } from 'node:os';
+import { cpus, homedir, totalmem } from 'node:os';
 import { Chess } from 'chess.js';
 
 // Finds Stockfish: config path first, then ./engine, then ~/Downloads (as unzipped from
@@ -30,6 +30,18 @@ export function findStockfish(configured, root) {
   return search(join(root, 'engine'), 3) || search(join(homedir(), 'Downloads'), 3);
 }
 
+// Hash (transposition table) size for a given search time. Measured on a Ryzen 7 5800X3D
+// with 14 threads: a 10 s search fills about 40% of 512 MB, i.e. ~20 MB per second. This
+// aims for ~50 MB per second (so the table stays under about half full), rounded up to a
+// power of two, between 512 MB and 8 GB and never more than a quarter of the computer's RAM.
+export function hashForMovetime(ms) {
+  const want = (ms / 1000) * 50;
+  let mb = 512;
+  while (mb < want) mb *= 2;
+  const cap = Math.min(8192, Math.floor(totalmem() / 1024 / 1024 / 4));
+  return Math.max(16, Math.min(mb, cap));
+}
+
 export class Engine {
   constructor(path) {
     this.path = path;
@@ -37,6 +49,7 @@ export class Engine {
     this.proc = null;
     this.buf = '';
     this.listeners = [];
+    this.hash = null;
   }
 
   async start() {
@@ -61,10 +74,20 @@ export class Engine {
     });
     // Leave a couple of cores free so the computer stays responsive.
     const threads = Math.max(1, cpus().length - 2);
+    this.threads = threads;
     this.send(`setoption name Threads value ${threads}`);
-    this.send('setoption name Hash value 512');
     this.send('isready');
     await this.waitFor((l) => l === 'readyok');
+  }
+
+  // Resizes the hash table (only between searches). Allocating a few GB takes a moment.
+  async setHash(mb) {
+    await this.start();
+    if (this.hash === mb) return;
+    this.send(`setoption name Hash value ${mb}`);
+    this.send('isready');
+    await this.waitFor((l) => l === 'readyok');
+    this.hash = mb;
   }
 
   send(cmd) { this.proc.stdin.write(cmd + '\n'); }
@@ -85,6 +108,7 @@ export class Engine {
     if (c.isCheckmate()) return { best: null, depth: 0, cp: c.turn() === 'w' ? -100000 : 100000, mate: null, pv: [], over: 'checkmate' };
     if (c.isStalemate()) return { best: null, depth: 0, cp: 0, mate: null, pv: [], over: 'stalemate' };
     await this.start();
+    if (!this.hash) await this.setHash(hashForMovetime(movetime));
     let last = null;
     const onInfo = (l) => {
       if (l.startsWith('info ') && l.includes(' score ') && l.includes(' pv ') && !l.includes(' multipv 2')) last = l;

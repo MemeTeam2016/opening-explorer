@@ -114,7 +114,11 @@ Keep that window open while you use the page; closing it stops the server. Then 
 3. It shows an **estimated time** of *number of games × seconds per position* (games whose
    position is already analyzed are not counted). Click **Analyze with Stockfish…**, then confirm with the
    **Start · about …** button, which shows the same estimate.
-4. Stockfish thinks for the chosen time on each position, using all but two CPU threads. Results
+4. Stockfish thinks for the chosen time on each position, using all but two CPU threads. Its
+   memory (hash) grows with the time, about 50 MB per second rounded up to a power of two:
+   512 MB up to 10 s, 1 GB to 20 s, 2 GB to 40 s, 4 GB to 80 s, and 8 GB beyond that (never
+   more than a quarter of your RAM). On a 10 s search 512 MB is only about 40% used, so more
+   memory only helps on longer searches. Results
    appear while it runs, **sorted from your worst evaluation to your best**. **Stop** ends
    early and keeps every finished position.
 

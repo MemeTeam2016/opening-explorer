@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from '
 import { spawn } from 'node:child_process';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Engine, findStockfish } from './engine.mjs';
+import { Engine, findStockfish, hashForMovetime } from './engine.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const dataDir = process.env.EXPLORER_DATA_DIR || join(root, 'data');
@@ -69,7 +69,8 @@ function jobView(full) {
   if (!job) return null;
   const v = {
     id: job.id, status: job.status, total: job.fens.length, done: job.done, fromCache: job.fromCache,
-    startedAt: job.startedAt, finishedAt: job.finishedAt, movetime: job.movetime, error: job.error || null,
+    startedAt: job.startedAt, finishedAt: job.finishedAt, movetime: job.movetime, hash: job.hash,
+    threads: engine?.threads ?? null, error: job.error || null,
   };
   if (full) {
     v.meta = job.meta;
@@ -82,6 +83,7 @@ function jobView(full) {
 async function runJob() {
   const j = job;
   try {
+    await engine.setHash(j.hash); // more memory for longer searches
     for (const fen of j.fens) {
       if (j.status !== 'running') break;
       if (cached(fen, j.movetime)) { j.done++; continue; }
@@ -157,7 +159,7 @@ async function api(req, res, path) {
     if (!fens.every((f) => typeof f === 'string' && FEN_RE.test(f))) return send(res, 400, { error: 'bad FEN' });
     const unique = [...new Set(fens)];
     job = {
-      id: Date.now().toString(36), status: 'running', fens: unique, done: 0, meta: meta ?? null, movetime: mt,
+      id: Date.now().toString(36), status: 'running', fens: unique, done: 0, meta: meta ?? null, movetime: mt, hash: hashForMovetime(mt),
       fromCache: unique.filter((f) => cached(f, mt)).length, startedAt: Date.now(), finishedAt: null,
     };
     runJob();

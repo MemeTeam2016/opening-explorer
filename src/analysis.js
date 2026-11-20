@@ -54,6 +54,14 @@ function evalClass(score) {
   return 'even';
 }
 
+// " · 14 threads, 2 GB hash" (empty for servers that don't report it)
+function engineInfo(job) {
+  const parts = [];
+  if (job.threads) parts.push(`${job.threads} threads`);
+  if (job.hash) parts.push(job.hash >= 1024 ? `${job.hash / 1024} GB hash` : `${job.hash} MB hash`);
+  return parts.length ? ` · ${parts.join(', ')}` : '';
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -310,7 +318,7 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     const left = (job.total - job.done) * (job.movetime / 1000);
     const elapsed = ((job.finishedAt || Date.now()) - job.startedAt) / 1000;
     const label = {
-      running: `Analyzing… ${fmtInt(job.done)} of ${fmtInt(job.total)} positions · ${fmtDuration(elapsed)} elapsed · about ${fmtDuration(left)} left`,
+      running: `Analyzing… ${fmtInt(job.done)} of ${fmtInt(job.total)} positions · ${fmtDuration(elapsed)} elapsed · about ${fmtDuration(left)} left${engineInfo(job)}`,
       done: `Finished: ${fmtInt(job.total)} positions in ${fmtDuration(elapsed)}`,
       stopped: `Stopped after ${fmtInt(job.done)} of ${fmtInt(job.total)} positions`,
       error: `Error: ${job.error || 'unknown'}`,

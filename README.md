@@ -10,7 +10,36 @@ Everything runs on your computer, with no CDN. The explorer needs no server. Ana
 small local server, because a web page can't start Stockfish on its own. The downloader talks
 only to the public chess.com and Lichess APIs.
 
-## Setup (once)
+## Quick start (Windows)
+
+1. **Install Node.js.** Get the LTS version from [nodejs.org](https://nodejs.org) and install
+   it with the default options.
+2. **Get this project.** On this GitHub page click **Code → Download ZIP**, then unzip it
+   somewhere, for example your Documents folder. (Or `git clone` it.)
+3. **Get Stockfish** (only needed for the Analysis tab). Download the Windows build from
+   [stockfishchess.org/download](https://stockfishchess.org/download/) and unzip it in your
+   **Downloads** folder, or in a folder named `engine` inside this project. It's found
+   automatically in either place. If your PC is older and the "AVX2" build doesn't run, try the
+   build marked for older CPUs.
+4. **Double-click `Open Analysis.cmd`.** The first time, it installs what it needs (about a
+   minute). Then it opens the app in your browser. Keep the black window open while you use it;
+   closing it stops the app.
+5. **Enter your usernames** on the **Download** tab (chess.com and/or Lichess), click **Save
+   usernames**, then **Download latest games**. The first download takes a few minutes. Click
+   **Reload** when it's done.
+
+That's it. Use the **Explorer** tab to browse your openings and **Analysis** to find the
+positions where you go wrong. Next time, just double-click `Open Analysis.cmd` again and click
+**Download latest games** to add your newest games.
+
+Your games and settings stay on your computer (in `data/` and `config.json`). Nothing is sent
+anywhere except requests to chess.com and Lichess for your public games.
+
+**Mac or Linux:** install Node.js, then in a terminal in this folder run `npm install` and
+`npm run serve`, and open http://localhost:5175. Set the `stockfish` path in `config.json` (see
+below) to your Stockfish program.
+
+## Setup by hand
 
 Needs [Node.js](https://nodejs.org) 16 or newer.
 

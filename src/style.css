@@ -176,6 +176,10 @@ button.icon path { stroke: currentColor; stroke-width: 2; fill: none; stroke-lin
 .game.win .res { background: var(--win); }
 .game.draw .res { background: var(--draw); }
 .game.loss .res { background: var(--loss); }
+.score { flex: none; min-width: 52px; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
+.game.win .score { color: var(--win); }
+.game.draw .score { color: var(--muted, inherit); }
+.game.loss .score { color: var(--loss); }
 .g-main { display: flex; flex-direction: column; min-width: 0; }
 .g-opp { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-meta { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -235,6 +239,8 @@ button.primary:hover { filter: brightness(1.06); border-color: var(--accent); }
 .an-line .num { color: var(--muted); margin-right: 2px; }
 .an-best { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; white-space: nowrap; }
 .an-best .muted { font-size: 11px; }
+.an-opening { min-width: 180px; }
+.an-eco { font-size: 12px; font-variant-numeric: tabular-nums; }
 .an-explore { padding: 4px 10px; font-size: 13px; }
 .ev {
   display: inline-block; min-width: 62px; text-align: center; padding: 2px 8px; border-radius: 6px;

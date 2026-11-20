@@ -130,8 +130,9 @@ Keep that window open while you use the page; closing it stops the server. Then 
    early and keeps every finished position.
 
 Each row shows the evaluation from your side (e.g. `−1.20`, or `#−3` for a mate against
-you), the number of games and their won–drawn–lost record, the line played, and Stockfish's
-best reply for your opponent. Click a row to list its games. **Explore** opens the line in the
+you), the number of games and their won–drawn–lost record, the line played, and the opening name.
+The name is that of the deepest named position the line passed through, from the Lichess
+opening list (matched by position, so transpositions get the right name). Click a row to list its games. **Explore** opens the line in the
 explorer.
 
 The position used is the one right after *your* move N (for White after ply 2N−1, for Black
@@ -164,7 +165,8 @@ against that brute-force count, with several filter combinations.
 | `src/analysis.js` | Analysis view (selection, estimate, results) |
 | `src/download.js` | Download view (usernames, download progress) |
 | `serve.mjs`, `engine.mjs` | Local server with the analysis API, and the Stockfish (UCI) wrapper |
-| `build.mjs` | Build script |
+| `build.mjs` | Build script (also turns `openings/*.tsv` into `src/openings-data.json`) |
+| `openings/` | Lichess opening names (`a.tsv`–`e.tsv`) and the script that indexes them |
 | `data/` | Your games, backups and `evals.json` (git-ignored) |
 | `config.json` | Your usernames and Stockfish path (git-ignored) |
 
@@ -185,6 +187,9 @@ The built page (`dist/`) bundles the following open-source software:
 - **[Stockfish](https://stockfishchess.org)** (GPL-3.0), © the Stockfish developers. It is
   **not included** here. You download it yourself, and it runs as a separate program that the
   local server talks to over the UCI protocol.
+- **[Lichess opening names](https://github.com/lichess-org/chess-openings)** (`openings/*.tsv`,
+  commit `3ba6b20`, November 2026), © the Lichess contributors, dedicated to the public domain
+  under **CC0-1.0**. Used for the opening names in the analysis table.
 - **[esbuild](https://github.com/evanw/esbuild)** (MIT), used only at build time. It is not
   included in the built app.
 

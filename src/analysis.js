@@ -1,7 +1,7 @@
 // Analysis view: pick games, evaluate the position after your move N with Stockfish
 // (via the local server), and list the positions from worst to best for you.
-import { Chess } from 'chess.js';
 import { Board } from './explorer.js';
+import OPENINGS from './openings-data.json';
 
 const $ = (id) => document.getElementById(id);
 const TIME_CLASSES = ['bullet', 'blitz', 'rapid', 'classical', 'daily'];
@@ -62,6 +62,20 @@ function engineInfo(job) {
   return parts.length ? ` · ${parts.join(', ')}` : '';
 }
 
+// The game's result in PGN notation: 1-0 (White won), 0-1 (Black won), 1/2-1/2 (draw).
+function scoreText(g) {
+  if (g.result === 'draw') return '1/2-1/2';
+  const whiteWon = (g.result === 'win') === (g.myColor === 'white');
+  return whiteWon ? '1-0' : '0-1';
+}
+
+// "B12 Caro-Kann Defense: Advance Variation" -> ECO code in grey, then the name
+function openingHtml(s) {
+  if (!s) return '<span class="muted">Unnamed</span>';
+  const i = s.indexOf(' ');
+  return `<span class="muted an-eco">${escapeHtml(s.slice(0, i))}</span> ${escapeHtml(s.slice(i + 1))}`;
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -112,11 +126,16 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
       if (!first || g.day < first) first = g.day;
       if (!lastDay || g.day > lastDay) lastDay = g.day;
       const b = new Board();
-      for (let i = 0; i < ply; i++) b.play(ucis[i]);
+      let opening = '';
+      for (let i = 0; i < ply; i++) {
+        b.play(ucis[i]);
+        opening = OPENINGS[b.key()] || opening; // the deepest named position along the way
+      }
       const fen = b.fen();
       const key = posKey(fen);
       let grp = byKey.get(key);
-      if (!grp) byKey.set(key, (grp = { key, fen, games: [], lines: new Map() }));
+      if (!grp) byKey.set(key, (grp = { key, fen, games: [], lines: new Map(), openings: new Map() }));
+      if (opening) grp.openings.set(opening, (grp.openings.get(opening) || 0) + 1);
       grp.games.push(gi);
       const line = g.moves.split(' ').slice(0, ply).join(' ');
       grp.lines.set(line, (grp.lines.get(line) || 0) + 1);
@@ -125,6 +144,9 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     groups = [...byKey.values()];
     for (const grp of groups) {
       grp.line = [...grp.lines.entries()].sort((a, b) => b[1] - a[1])[0][0].split(' ');
+      // Transposed games can pass different named positions: use the most common name.
+      const op = [...grp.openings.entries()].sort((a, b) => b[1] - a[1])[0];
+      grp.opening = op ? op[0] : '';
       const r = { win: 0, draw: 0, loss: 0 };
       for (const gi of grp.games) r[games[gi].result]++;
       grp.res = r;
@@ -328,14 +350,6 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
     syncForm();
   }
 
-  function bestSan(fen, uci) {
-    if (!uci) return '';
-    try {
-      const m = new Chess(fen).move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
-      return m ? m.san : uci;
-    } catch { return uci; }
-  }
-
   function renderResults() {
     const color = an.color;
     const rows = groups.filter((g) => evals[g.fen]).map((g) => ({ g, e: evals[g.fen], s: myScore(evals[g.fen], color) }));
@@ -350,7 +364,7 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
       const isOpen = open.has(g.key);
       const gamesList = isOpen ? `<tr class="an-games"><td colspan="6">${g.games.slice().reverse().map((gi) => {
         const x = games[gi];
-        return `<a class="game ${x.result}" href="${x.url}" target="_blank" rel="noopener noreferrer"><span class="res"></span>
+        return `<a class="game ${x.result}" href="${x.url}" target="_blank" rel="noopener noreferrer"><span class="score">${scoreText(x)}</span>
           <span class="g-opp">${escapeHtml(x.opponent || '?')}${x.oppRating ? ` <span class="muted">${x.oppRating}</span>` : ''}</span>
           <span class="muted">${x.day} · ${x.timeClass} · ${x.source === 'lichess' ? 'Lichess' : 'chess.com'}</span></a>`;
       }).join('')}</td></tr>` : '';
@@ -359,7 +373,7 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
         <td><span class="ev ${evalClass(s)}">${fmtEval(e, color)}</span></td>
         <td class="an-count">${n > 1 ? `<b>×${n}</b>` : '1'}<span class="an-wdl muted">${g.res.win}–${g.res.draw}–${g.res.loss}</span></td>
         <td class="an-line">${lineHtml(g.line)}</td>
-        <td class="an-best">${e.best ? escapeHtml(bestSan(g.fen, e.best)) : ''}<span class="muted">${e.depth ? ` d${e.depth}` : ''}</span></td>
+        <td class="an-opening">${openingHtml(g.opening)}</td>
         <td><button class="ghost an-explore" data-explore="${escapeHtml(g.key)}" title="Open this line in the explorer">Explore</button></td>
       </tr>${gamesList}`;
     }).join('');

@@ -2,8 +2,10 @@
 // Output is a classic (non-module) script so index.html works from file://.
 import { build } from 'esbuild';
 import { copyFileSync, mkdirSync } from 'node:fs';
+import { buildOpenings } from './openings/build-openings.mjs';
 
 mkdirSync('dist', { recursive: true });
+buildOpenings(); // openings/*.tsv -> src/openings-data.json
 
 await build({
   entryPoints: ['src/main.js'],

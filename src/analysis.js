@@ -147,9 +147,6 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
       // Transposed games can pass different named positions: use the most common name.
       const op = [...grp.openings.entries()].sort((a, b) => b[1] - a[1])[0];
       grp.opening = op ? op[0] : '';
-      const r = { win: 0, draw: 0, loss: 0 };
-      for (const gi of grp.games) r[games[gi].result]++;
-      grp.res = r;
     }
     selected = { games: n, short, first, lastDay };
     shown = SHOW_STEP;
@@ -371,7 +368,7 @@ export function initAnalysis({ games, prefs, savePrefs, onExplore }) {
       return `<tr class="an-row${isOpen ? ' open' : ''}" data-key="${escapeHtml(g.key)}" tabindex="0" title="Show the games">
         <td class="an-rank">${i + 1}</td>
         <td><span class="ev ${evalClass(s)}">${fmtEval(e, color)}</span></td>
-        <td class="an-count">${n > 1 ? `<b>×${n}</b>` : '1'}<span class="an-wdl muted">${g.res.win}–${g.res.draw}–${g.res.loss}</span></td>
+        <td class="an-count">${n > 1 ? `<b>×${n}</b>` : '1'}</td>
         <td class="an-line">${lineHtml(g.line)}</td>
         <td class="an-opening">${openingHtml(g.opening)}</td>
         <td><button class="ghost an-explore" data-explore="${escapeHtml(g.key)}" title="Open this line in the explorer">Explore</button></td>

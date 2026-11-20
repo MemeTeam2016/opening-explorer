@@ -234,7 +234,6 @@ button.primary:hover { filter: brightness(1.06); border-color: var(--accent); }
 .an-row:hover, .an-row:focus, .an-row.open { background: var(--hover); outline: none; }
 .an-rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 1%; }
 .an-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.an-wdl { font-size: 12px; margin-left: 8px; }
 .an-line { font: 13px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; min-width: 260px; }
 .an-line .num { color: var(--muted); margin-right: 2px; }
 .an-best { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; white-space: nowrap; }

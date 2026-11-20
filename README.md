@@ -130,7 +130,7 @@ Keep that window open while you use the page; closing it stops the server. Then 
    early and keeps every finished position.
 
 Each row shows the evaluation from your side (e.g. `−1.20`, or `#−3` for a mate against
-you), the number of games and their won–drawn–lost record, the line played, and the opening name.
+you), the number of games, the line played, and the opening name.
 The name is that of the deepest named position the line passed through, from the Lichess
 opening list (matched by position, so transpositions get the right name). Click a row to list its games. **Explore** opens the line in the
 explorer.

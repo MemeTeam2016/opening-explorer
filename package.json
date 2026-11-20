@@ -1,7 +1,7 @@
 {
   "name": "opening-explorer",
   "version": "1.0.0",
-  "description": "Local explorer for your own chess.com and Lichess games",
+  "description": "Local explorer and Stockfish analysis for your own chess.com and Lichess games",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",

@@ -23,6 +23,21 @@ export class Board {
   key() {
     return this.b.join('') + (this.white ? 'w' : 'b') + this.castle + this.ep;
   }
+  // Standard FEN (move counters are not tracked, so they are written as 0 1).
+  fen() {
+    const rows = [];
+    for (let r = 0; r < 8; r++) {
+      let row = '', empty = 0;
+      for (let f = 0; f < 8; f++) {
+        const p = this.b[r * 8 + f];
+        if (p === '.') { empty++; continue; }
+        if (empty) { row += empty; empty = 0; }
+        row += p;
+      }
+      rows.push(empty ? row + empty : row);
+    }
+    return `${rows.join('/')} ${this.white ? 'w' : 'b'} ${this.castle} ${this.ep} 0 1`;
+  }
   play(uci) {
     const b = this.b;
     const from = sq(uci.slice(0, 2));
@@ -113,13 +128,18 @@ export function buildIndex(games) {
   };
 }
 
-export function filterGames(games, { color, source, time }) {
+// from / to are inclusive 'YYYY-MM-DD' strings ('' = no limit), compared with g.day
+// (the game's local date) or, if missing, the date part of g.date.
+export function filterGames(games, { color, source, time, from = '', to = '' }) {
   const out = new Uint8Array(games.length);
   const times = new Set(time);
   games.forEach((g, i) => {
+    const day = g.day || (g.date || '').slice(0, 10);
     out[i] = (color === 'both' || g.myColor === color)
       && (source === 'all' || g.source === source)
-      && times.has(g.timeClass) ? 1 : 0;
+      && times.has(g.timeClass)
+      && (!from || day >= from)
+      && (!to || day <= to) ? 1 : 0;
   });
   return out;
 }

@@ -1,12 +1,20 @@
 import { Chessground } from 'chessground';
 import { Chess, SQUARES } from 'chess.js';
 import { buildIndex, keyAfter, filterGames, statsFor, START_KEY, MAX_PLY } from './explorer.js';
+import { initAnalysis } from './analysis.js';
 
 const positionKey = (c) => keyAfter(c.history({ verbose: true }).map((m) => m.from + m.to + (m.promotion || '')));
 
 const $ = (id) => document.getElementById(id);
 const PREFS_KEY = 'opening-explorer:prefs';
 const TIME_CLASSES = ['bullet', 'blitz', 'rapid', 'classical', 'daily'];
+
+const pad = (n) => String(n).padStart(2, '0');
+function localDay(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 // ---------- data ----------
 const data = window.EXPLORER_DATA;
@@ -18,12 +26,16 @@ const F = Object.fromEntries(data.fields.map((f, i) => [f, i]));
 const games = data.games.map((row) => {
   const g = {};
   for (const f in F) g[f] = row[F[f]];
+  g.day = localDay(g.date); // YYYY-MM-DD in your time zone, for the date filter
   return g;
 });
 const index = buildIndex(games);
+const days = games.map((g) => g.day).filter(Boolean).sort();
+const firstDay = days[0] || '';
+const lastDay = days[days.length - 1] || '';
 
 // ---------- prefs ----------
-const defaults = { color: 'white', source: 'all', time: TIME_CLASSES.slice() };
+const defaults = { color: 'white', source: 'all', time: TIME_CLASSES.slice(), from: '', to: '', view: 'explorer' };
 let prefs = { ...defaults };
 try {
   const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null');
@@ -183,7 +195,7 @@ function renderRecent() {
   $('recent-wrap').hidden = !list.length;
   $('recent').innerHTML = list.map((i) => {
     const g = games[i];
-    const date = g.date ? g.date.slice(0, 10) : '';
+    const date = g.day;
     const src = g.source === 'lichess' ? 'Lichess' : 'chess.com';
     const vs = g.myColor === 'white' ? 'White' : 'Black';
     return `<a class="game ${g.result}" href="${g.url}" target="_blank" rel="noopener noreferrer">
@@ -216,6 +228,12 @@ function renderFilters() {
   for (const b of document.querySelectorAll('[data-color]')) b.classList.toggle('on', b.dataset.color === prefs.color);
   for (const b of document.querySelectorAll('[data-source]')) b.classList.toggle('on', b.dataset.source === prefs.source);
   for (const b of document.querySelectorAll('[data-time]')) b.classList.toggle('on', prefs.time.includes(b.dataset.time));
+  $('date-from').value = prefs.from;
+  $('date-to').value = prefs.to;
+  // Keep the range valid: "from" can't be after "to" and vice versa.
+  $('date-from').max = prefs.to || lastDay;
+  $('date-to').min = prefs.from || firstDay;
+  $('date-clear').hidden = !prefs.from && !prefs.to;
   let n = 0;
   for (let i = 0; i < active.length; i++) n += active[i];
   $('filter-count').textContent = `${fmtInt(n)} of ${fmtInt(games.length)} games`;
@@ -282,7 +300,20 @@ function wire() {
     };
   }
 
+  const onDate = () => {
+    prefs.from = $('date-from').value;
+    prefs.to = $('date-to').value;
+    if (prefs.from && prefs.to && prefs.from > prefs.to) [prefs.from, prefs.to] = [prefs.to, prefs.from];
+    refilter();
+  };
+  $('date-from').addEventListener('change', onDate);
+  $('date-to').addEventListener('change', onDate);
+  $('date-clear').onclick = () => { prefs.from = prefs.to = ''; refilter(); };
+
+  for (const b of document.querySelectorAll('[data-view]')) b.onclick = () => showView(b.dataset.view);
+
   document.addEventListener('keydown', (e) => {
+    if (prefs.view !== 'explorer') return;
     if (e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); forward(); }
@@ -293,8 +324,38 @@ function wire() {
 
 const updated = data.updatedAt ? new Date(data.updatedAt) : null;
 $('updated').textContent = updated ? `Updated ${updated.toLocaleDateString()}` : '';
+$('date-from').min = firstDay;
+$('date-to').max = lastDay;
+$('date-from').placeholder = firstDay;
+$('date-to').placeholder = lastDay;
+function showView(v) {
+  prefs.view = v === 'analysis' ? 'analysis' : 'explorer';
+  savePrefs();
+  $('view-explorer').hidden = prefs.view !== 'explorer';
+  $('view-analysis').hidden = prefs.view !== 'analysis';
+  for (const b of document.querySelectorAll('[data-view]')) {
+    b.classList.toggle('on', b.dataset.view === prefs.view);
+    b.setAttribute('aria-selected', String(b.dataset.view === prefs.view));
+  }
+  if (prefs.view === 'explorer' && cg) cg.redrawAll();
+}
+
 initBoard();
 wire();
 render();
+initAnalysis({
+  games,
+  prefs,
+  savePrefs,
+  // "Explore" on an analysis row: open that line in the explorer.
+  onExplore(color, sans) {
+    prefs.color = color;
+    active = filterGames(games, prefs);
+    future = [];
+    showView('explorer');
+    setPath(sans);
+  },
+});
+showView(prefs.view);
 // Exposed for debugging and tests.
 window.explorer = { games, index, get cg() { return cg; }, get active() { return active; }, positionKey: () => positionKey(chess), START_KEY };

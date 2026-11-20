@@ -12,12 +12,17 @@
   <header class="bar">
     <div class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <h2>Opening Explorer</h2>
+    <nav class="tabs" role="tablist">
+      <button data-view="explorer" role="tab">Explorer</button>
+      <button data-view="analysis" role="tab">Analysis</button>
+    </nav>
     <div class="bar-right">
       <span id="filter-count" class="muted small"></span>
       <span id="updated" class="muted small"></span>
     </div>
   </header>
 
+  <div id="view-explorer">
   <div class="filters">
     <div class="seg" role="group" aria-label="My color">
       <button data-color="white">White</button>
@@ -35,6 +40,11 @@
       <button data-time="rapid">Rapid</button>
       <button data-time="classical">Classical</button>
       <button data-time="daily">Daily</button>
+    </div>
+    <div class="dates" role="group" aria-label="Date range">
+      <label>From <input type="date" id="date-from"></label>
+      <label>To <input type="date" id="date-to"></label>
+      <button id="date-clear" class="clear" title="Clear dates" aria-label="Clear dates"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
     </div>
   </div>
 
@@ -63,6 +73,85 @@
       </div>
     </aside>
   </main>
+  </div>
+
+  <div id="view-analysis" class="analysis" hidden>
+    <section id="an-form" class="card an-form">
+      <div class="an-head">
+        <h3>Find your worst positions</h3>
+        <span id="an-engine" class="an-engine muted"></span>
+      </div>
+      <p class="muted an-help">Stockfish evaluates the position right after your chosen move in each game. Positions are then ranked from worst to best for you.</p>
+      <div class="an-modes" role="tablist" aria-label="Which games">
+        <button data-an-mode="dates" role="tab">Date range</button>
+        <button data-an-mode="last" role="tab">Last games</button>
+      </div>
+      <div class="an-grid">
+        <span class="an-label">I play</span>
+        <div class="seg" role="group" aria-label="My color">
+          <button data-an-color="white">White</button>
+          <button data-an-color="black">Black</button>
+        </div>
+        <span class="an-label">After my move</span>
+        <div><input id="an-move" class="num-input" type="number" min="1" max="200" step="1" aria-label="Move number"></div>
+        <span class="an-label">Seconds per position</span>
+        <div class="an-inline"><input id="an-seconds" class="num-input" type="number" min="0.1" max="600" step="any" aria-label="Seconds Stockfish thinks per position"><span class="muted small">More time searches deeper. Positions already analyzed at least this long are reused.</span></div>
+        <span class="an-label">Time control</span>
+        <div class="chips" role="group" aria-label="Time control">
+          <button data-an-time="bullet">Bullet</button>
+          <button data-an-time="blitz">Blitz</button>
+          <button data-an-time="rapid">Rapid</button>
+          <button data-an-time="classical">Classical</button>
+          <button data-an-time="daily">Daily</button>
+        </div>
+        <span class="an-label" data-an-only="last">Number of games</span>
+        <div class="an-inline" data-an-only="last"><input id="an-last" class="num-input" type="number" min="1" max="100000" step="1" aria-label="Number of most recent games"><span class="muted small">Your most recent games that match the other options and reach the chosen move.</span></div>
+        <span class="an-label" data-an-only="dates">Dates</span>
+        <div class="dates" role="group" aria-label="Date range" data-an-only="dates">
+          <label>From <input type="date" id="an-from"></label>
+          <label>To <input type="date" id="an-to"></label>
+          <button id="an-date-clear" class="clear" title="Clear dates" aria-label="Clear dates"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
+        </div>
+        <span class="an-label">Site</span>
+        <div class="seg" role="group" aria-label="Platform">
+          <button data-an-source="all">All sites</button>
+          <button data-an-source="chesscom">chess.com</button>
+          <button data-an-source="lichess">Lichess</button>
+        </div>
+      </div>
+      <p id="an-summary" class="an-summary"></p>
+      <p id="an-est" class="an-est"></p>
+      <div class="an-actions">
+        <button id="an-run" class="primary">Analyze with Stockfish…</button>
+      </div>
+      <div id="an-confirm" class="an-confirm" hidden>
+        <p id="an-confirm-text"></p>
+        <div class="an-actions">
+          <button id="an-go" class="primary"></button>
+          <button id="an-cancel" class="ghost">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="an-progress" class="card an-progress" hidden>
+      <div class="progress"><div id="an-bar"></div></div>
+      <div class="an-progress-row">
+        <span id="an-progress-text"></span>
+        <button id="an-stop" class="ghost">Stop</button>
+      </div>
+    </section>
+
+    <section id="an-results" class="card an-results" hidden>
+      <h3 id="an-results-head" class="an-results-head"></h3>
+      <div class="an-table-wrap">
+        <table class="an-table">
+          <thead><tr><th>#</th><th>Eval</th><th>Games</th><th>Line</th><th title="Stockfish's best move for your opponent in this position">Their best reply</th><th></th></tr></thead>
+          <tbody id="an-body"></tbody>
+        </table>
+      </div>
+      <button id="an-more" class="ghost an-more" hidden></button>
+    </section>
+  </div>
 
   <div class="empty-state">
     <div class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>

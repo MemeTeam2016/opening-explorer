@@ -3,9 +3,11 @@
 A local tool for exploring the openings in **your own games**. It downloads all your games
 from chess.com and Lichess into one local database. A Lichess-style explorer then shows, for
 any position, which moves were played in your games, how often, and how they turned out for
-you (won / drawn / lost).
+you (won / drawn / lost). An **Analysis** view runs Stockfish on your games and ranks the
+positions you reached from worst to best for you.
 
-Everything runs on your computer. The page needs no server and no CDN. The downloader talks
+Everything runs on your computer, with no CDN. The explorer needs no server. Analysis uses a
+small local server, because a web page can't start Stockfish on its own. The downloader talks
 only to the public chess.com and Lichess APIs.
 
 ## Setup (once)
@@ -22,9 +24,15 @@ list, so several accounts work too:
 ```json
 {
   "chesscom": ["your-chess.com-name"],
-  "lichess": ["your-lichess-name"]
+  "lichess": ["your-lichess-name"],
+  "stockfish": "C:/path/to/stockfish-windows-x86-64-avx2.exe"
 }
 ```
+
+`stockfish` is only needed for analysis. Get the official build from
+[stockfishchess.org/download](https://stockfishchess.org/download/). If you leave `stockfish`
+out, the server looks for a `stockfish*.exe` inside an `engine/` folder here, then inside
+a `stockfish…` folder in your Downloads.
 
 ## 1. Download your games
 
@@ -82,13 +90,48 @@ download to see new games.
   (Σ is the total). **Click a move** to play it, or make any move on the board.
 - **Back / Forward / Start / Reset** controls, also on the keys ← → ↑. `F` flips the board.
   Click a move in the move list above the table to jump back to it.
-- Filters: **my color** (White / Black / Both), **site**, and **time control**. They are
-  remembered in your browser.
+- Filters: **my color** (White / Black / Both), **site**, **time control**, and a **date range**
+  (From / To, both inclusive, in your local time zone; leave either empty for no limit, ×
+  clears both). They are remembered in your browser.
 - Positions are matched by position, not move order, so transpositions merge (like the Lichess
   explorer). Each game counts once per position. The first 25 moves of each game are indexed.
 - *Recent games* links to the latest games that reached the current position.
 
-Optional local server: `npm run serve`, then open http://localhost:5175.
+## 3. Analyze with Stockfish
+
+Double-click **`Open Analysis.cmd`**, or run `npm run serve` and open http://localhost:5175.
+Keep that window open while you use the page; closing it stops the server. Then click
+**Analysis** at the top.
+
+1. Pick which games with the tabs at the top: **Date range** (all games between two dates;
+   leave a date empty for no limit) or **Last games** (your most recent *N* games that match
+   the other options and reach the chosen move, newest first).
+   Then choose **I play** (White / Black), **After my move** (a move number), **Seconds per
+   position** (how long Stockfish thinks on each one; default 10, from 0.1 to 600), the
+   **time controls**, and the **site**.
+2. The page shows how many games reach that move and how many *different* positions that is.
+   Repeated positions are analyzed only once and shown with a count (×N).
+3. It shows an **estimated time** of *number of games × seconds per position* (games whose
+   position is already analyzed are not counted). Click **Analyze with Stockfish…**, then confirm with the
+   **Start · about …** button, which shows the same estimate.
+4. Stockfish thinks for the chosen time on each position, using all but two CPU threads. Results
+   appear while it runs, **sorted from your worst evaluation to your best**. **Stop** ends
+   early and keeps every finished position.
+
+Each row shows the evaluation from your side (e.g. `−1.20`, or `#−3` for a mate against
+you), the number of games and their won–drawn–lost record, the line played, and Stockfish's
+best reply for your opponent. Click a row to list its games. **Explore** opens the line in the
+explorer.
+
+The position used is the one right after *your* move N (for White after ply 2N−1, for Black
+after ply 2N). Games that ended earlier are left out and counted separately.
+
+Evaluations are saved in `data/evals.json`, one per position, and reused by later runs, so
+nothing is analyzed twice. An eval is reused when it was searched at least as long as the
+current setting. Asking for more time re-analyzes those positions, and the deeper result
+replaces the shallower one. Nothing is ever removed from that file. Analysis runs in the server, so it keeps
+going if you close or reload the page, and the page picks it up again when reopened. The API
+only answers requests from this page on localhost.
 
 ## Tests
 
@@ -107,9 +150,11 @@ against that brute-force count, with several filter combinations.
 | `src/main.js` | Explorer UI (board, move table, filters) |
 | `src/explorer.js` | Position index and statistics |
 | `src/index.html`, `src/style.css` | Page and styles; `build.mjs` copies/bundles them |
-| `build.mjs`, `serve.mjs` | Build script and optional local server |
-| `data/` | Your games and backups (git-ignored) |
-| `config.json` | Your usernames (git-ignored) |
+| `src/analysis.js` | Analysis view (selection, estimate, results) |
+| `serve.mjs`, `engine.mjs` | Local server with the analysis API, and the Stockfish (UCI) wrapper |
+| `build.mjs` | Build script |
+| `data/` | Your games, backups and `evals.json` (git-ignored) |
+| `config.json` | Your usernames and Stockfish path (git-ignored) |
 
 ## Credits and licenses
 
@@ -125,6 +170,9 @@ The built page (`dist/`) bundles the following open-source software:
 - **[chess.js](https://github.com/jhlywa/chess.js)** 1.4.0, move generation and PGN parsing
   (in the page and in the downloader), © Jeff Hlywa, **BSD-2-Clause**.
   License: [`licenses/chess.js-BSD-2-Clause.txt`](licenses/chess.js-BSD-2-Clause.txt)
+- **[Stockfish](https://stockfishchess.org)** (GPL-3.0), © the Stockfish developers. It is
+  **not included** here. You download it yourself, and it runs as a separate program that the
+  local server talks to over the UCI protocol.
 - **[esbuild](https://github.com/evanw/esbuild)** (MIT), used only at build time. It is not
   included in the built app.
 

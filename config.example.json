@@ -1,4 +1,9 @@
 {
-  "chesscom": ["your-chess.com-username"],
-  "lichess": ["your-lichess-username"]
+  "chesscom": [
+    "your-chess.com-username"
+  ],
+  "lichess": [
+    "your-lichess-username"
+  ],
+  "stockfish": "C:/path/to/stockfish-windows-x86-64-avx2.exe"
 }

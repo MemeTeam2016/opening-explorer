@@ -5,7 +5,8 @@
 // web page can't start Stockfish by itself.
 //
 // Environment (mainly for testing): PORT, EXPLORER_DATA_DIR (where games.js and
-// evals.json live). The page chooses the seconds per position for each run.
+// evals.json live), EXPLORER_CONFIG (path of config.json). The page chooses the seconds
+// per position for each run.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from 'node:fs';
@@ -18,7 +19,7 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 const dataDir = process.env.EXPLORER_DATA_DIR || join(root, 'data');
 const port = Number(process.env.PORT) || 5175;
 // Bump when the API changes, so an open page can tell that this server is out of date.
-const API_VERSION = 2;
+const API_VERSION = 3;
 const DEFAULT_MOVETIME = 10000;
 const MIN_MOVETIME = 100;
 const MAX_MOVETIME = 600000; // 10 minutes per position
@@ -38,7 +39,8 @@ const files = {
 
 // ---------- engine + eval cache ----------
 let config = {};
-try { config = JSON.parse(readFileSync(join(root, 'config.json'), 'utf8')); } catch { /* optional */ }
+const configPath = process.env.EXPLORER_CONFIG || join(root, 'config.json');
+try { config = JSON.parse(readFileSync(configPath, 'utf8')); } catch { /* optional */ }
 const enginePath = findStockfish(config.stockfish, root);
 const engine = enginePath ? new Engine(enginePath) : null;
 
@@ -61,6 +63,79 @@ const cached = (fen, movetime) => {
   return e && e.movetime >= movetime ? e : null;
 };
 const FEN_RE = /^[pnbrqkPNBRQK1-8]+(\/[pnbrqkPNBRQK1-8]+){7} [wb] (-|[KQkq]{1,4}) (-|[a-h][36]) \d{1,3} \d{1,4}$/;
+
+// ---------- usernames (config.json) ----------
+const USER_RE = /^[A-Za-z0-9_-]{1,50}$/;
+
+function readConfig() {
+  if (!existsSync(configPath)) return {};
+  return JSON.parse(readFileSync(configPath, 'utf8')); // a damaged file is reported, never replaced
+}
+
+// Updates only the username lists; other settings (like "stockfish") are kept as they are.
+function saveUsernames(chesscom, lichess) {
+  const cfg = readConfig();
+  cfg.chesscom = chesscom;
+  cfg.lichess = lichess;
+  const tmp = configPath + '.tmp';
+  writeFileSync(tmp, JSON.stringify(cfg, null, 2) + '\n');
+  renameSync(tmp, configPath);
+}
+
+function cleanNames(list) {
+  if (!Array.isArray(list)) return null;
+  const out = [];
+  for (const n of list) {
+    if (typeof n !== 'string') return null;
+    const t = n.trim();
+    if (!t) continue;
+    if (!USER_RE.test(t)) return null;
+    if (!out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+  }
+  return out;
+}
+
+// ---------- downloading new games (runs download.mjs) ----------
+let dl = null;
+
+function dlView() {
+  if (!dl) return null;
+  return { status: dl.status, log: dl.log, added: dl.added, startedAt: dl.startedAt, finishedAt: dl.finishedAt, code: dl.code };
+}
+
+function startDownload() {
+  const run = { status: 'running', log: [], added: null, startedAt: Date.now(), finishedAt: null, code: null };
+  dl = run;
+  const child = spawn(process.execPath, [join(root, 'download.mjs')], {
+    cwd: root,
+    env: { ...process.env, EXPLORER_DATA_DIR: dataDir, EXPLORER_CONFIG: configPath },
+    windowsHide: true,
+  });
+  let buf = '';
+  const onData = (chunk) => {
+    buf += chunk;
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).replace(/\r$/, '');
+      buf = buf.slice(i + 1);
+      run.log.push(line);
+      const m = line.match(/^Added (\d+) new games/);
+      if (m) run.added = Number(m[1]);
+    }
+    if (run.log.length > 1000) run.log.splice(0, run.log.length - 1000);
+  };
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', onData);
+  child.stderr.on('data', onData);
+  child.on('error', (e) => { run.log.push(`Could not start the downloader: ${e.message}`); });
+  child.on('close', (code) => {
+    if (buf) run.log.push(buf);
+    run.code = code;
+    run.status = code === 0 ? 'done' : 'error';
+    run.finishedAt = Date.now();
+  });
+}
 
 // ---------- the job (one at a time) ----------
 let job = null;
@@ -164,6 +239,25 @@ async function api(req, res, path) {
     };
     runJob();
     return send(res, 200, { job: jobView(false) });
+  }
+  if (path === '/api/config' && req.method === 'GET') {
+    let cfg;
+    try { cfg = readConfig(); } catch (e) { return send(res, 500, { error: `config.json can't be read: ${e.message}` }); }
+    return send(res, 200, { chesscom: [].concat(cfg.chesscom || []), lichess: [].concat(cfg.lichess || []) });
+  }
+  if (path === '/api/config' && req.method === 'POST') {
+    const body = await readJson(req, 1e5);
+    const chesscom = cleanNames(body.chesscom);
+    const lichess = cleanNames(body.lichess);
+    if (!chesscom || !lichess) return send(res, 400, { error: 'Usernames may only contain letters, digits, _ and -.' });
+    try { saveUsernames(chesscom, lichess); } catch (e) { return send(res, 500, { error: `Couldn't save config.json: ${e.message}` }); }
+    return send(res, 200, { chesscom, lichess });
+  }
+  if (path === '/api/download' && req.method === 'GET') return send(res, 200, { download: dlView() });
+  if (path === '/api/download' && req.method === 'POST') {
+    if (dl && dl.status === 'running') return send(res, 409, { error: 'A download is already running' });
+    startDownload();
+    return send(res, 200, { download: dlView() });
   }
   if (path === '/api/job/stop' && req.method === 'POST') {
     if (job && job.status === 'running') { job.status = 'stopped'; engine.stop(); }

@@ -15,6 +15,7 @@
     <nav class="tabs" role="tablist">
       <button data-view="explorer" role="tab">Explorer</button>
       <button data-view="analysis" role="tab">Analysis</button>
+      <button data-view="download" role="tab">Download</button>
     </nav>
     <div class="bar-right">
       <span id="filter-count" class="muted small"></span>
@@ -153,11 +154,44 @@
     </section>
   </div>
 
+  <div id="view-download" class="analysis" hidden>
+    <section class="card">
+      <div class="an-head"><h3>Your accounts</h3></div>
+      <p id="dl-server" class="an-engine warn dl-server" hidden></p>
+      <p class="muted an-help">Usernames are saved in <code>config.json</code>. Separate several accounts on the same site with commas.</p>
+      <div class="an-grid">
+        <label class="an-label" for="dl-chesscom">chess.com</label>
+        <input id="dl-chesscom" class="text-input" type="text" spellcheck="false" autocomplete="off" placeholder="username">
+        <label class="an-label" for="dl-lichess">Lichess</label>
+        <input id="dl-lichess" class="text-input" type="text" spellcheck="false" autocomplete="off" placeholder="username">
+      </div>
+      <div class="an-actions dl-actions">
+        <button id="dl-save">Save usernames</button>
+        <span id="dl-save-status" class="dl-note"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="an-head"><h3>Download new games</h3></div>
+      <p id="dl-stats" class="dl-stats"></p>
+      <p class="muted an-help">Only games you don't have yet are added. Nothing already downloaded is changed or deleted, and the database is backed up before each save.</p>
+      <div class="an-actions">
+        <button id="dl-run" class="primary">Download latest games</button>
+      </div>
+      <div id="dl-progress" class="dl-progress" hidden>
+        <div class="dl-status-row">
+          <span id="dl-status" class="dl-status"></span>
+          <button id="dl-reload" class="primary" hidden>Reload to include them</button>
+        </div>
+        <pre id="dl-log" class="dl-log"></pre>
+      </div>
+    </section>
+  </div>
+
   <div class="empty-state">
     <div class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <h1>No games yet</h1>
-    <p class="muted">Download your games first, then reload this page:</p>
-    <pre>npm run download</pre>
+    <p class="muted">Enter your usernames below and download your games. Or run <code>npm run download</code>, then reload this page.</p>
   </div>
 </body>
 </html>

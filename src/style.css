@@ -258,12 +258,34 @@ button.primary:hover { filter: brightness(1.06); border-color: var(--accent); }
   .bar { flex-wrap: wrap; }
 }
 
+/* ---------- download ---------- */
+.text-input {
+  font: inherit; width: min(420px, 100%); padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text);
+}
+.text-input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.dl-actions { align-items: center; }
+.dl-note { font-size: 13px; }
+.dl-note.ok, .dl-status.ok { color: var(--win); }
+.dl-note.warn, .dl-status.warn { color: var(--loss); }
+.dl-server { margin: 8px 0 0; }
+.dl-stats { margin: 4px 0 0; }
+.dl-progress { margin-top: 16px; }
+.dl-status-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 38px; }
+.dl-status { font-weight: 500; }
+.dl-log {
+  margin: 10px 0 0; max-height: 280px; overflow: auto; padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  font: 12px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; white-space: pre-wrap;
+}
+
 /* empty state */
 .empty-state { display: none; text-align: center; padding: 80px 16px; }
 .empty-state .logo { width: 44px; height: 44px; border-radius: 9px; margin: 0 auto 14px; }
 .empty-state pre { display: inline-block; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; }
 body[data-empty] .empty-state { display: block; }
 body[data-empty] #view-explorer, body[data-empty] #view-analysis, body[data-empty] .bar-right, body[data-empty] .tabs { display: none !important; }
+body[data-empty] .empty-state { padding: 48px 16px 0; }
 
 @media (max-width: 1000px) {
   .layout { flex-direction: column; align-items: center; padding: 16px; gap: 16px; }

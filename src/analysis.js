@@ -6,7 +6,7 @@ import { Board } from './explorer.js';
 const $ = (id) => document.getElementById(id);
 const TIME_CLASSES = ['bullet', 'blitz', 'rapid', 'classical', 'daily'];
 const SHOW_STEP = 200;
-const API_VERSION = 2; // must match serve.mjs
+const API_VERSION = 3; // must match serve.mjs
 const MIN_SECONDS = 0.1;
 const MAX_SECONDS = 600;
 

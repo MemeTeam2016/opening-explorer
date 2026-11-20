@@ -22,7 +22,7 @@ const USER_AGENT = 'opening-explorer/1.0 (personal game downloader)';
 // ---------- config ----------
 function loadConfig() {
   const cfg = { chesscom: [], lichess: [] };
-  const file = join(root, 'config.json');
+  const file = process.env.EXPLORER_CONFIG || join(root, 'config.json');
   if (existsSync(file)) {
     const raw = JSON.parse(readFileSync(file, 'utf8'));
     for (const k of ['chesscom', 'lichess']) {

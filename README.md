@@ -43,6 +43,12 @@ npm run download
 Or double-click **`Download Games.cmd`**. You can also skip `config.json` and pass names
 directly: `node download.mjs --chesscom NAME --lichess NAME`.
 
+**From the page:** with the local server running (`Open Analysis.cmd`, see below), the
+**Download** tab lets you edit your usernames (saved to `config.json`; other settings in that
+file are kept) and click **Download latest games**. The downloader's output appears in the
+page as it runs, and when new games were added a **Reload** button brings them in. Before you
+have any games, the page opens straight to this section.
+
 - The first run downloads everything. That can take a few minutes, because Lichess streams
   about 20–30 games per second.
 - **Re-running only adds new games.** Games are keyed by site and game id, so nothing is
@@ -100,6 +106,7 @@ download to see new games.
 ## 3. Analyze with Stockfish
 
 Double-click **`Open Analysis.cmd`**, or run `npm run serve` and open http://localhost:5175.
+(The same server also powers the Download tab.)
 Keep that window open while you use the page; closing it stops the server. Then click
 **Analysis** at the top.
 
@@ -155,6 +162,7 @@ against that brute-force count, with several filter combinations.
 | `src/explorer.js` | Position index and statistics |
 | `src/index.html`, `src/style.css` | Page and styles; `build.mjs` copies/bundles them |
 | `src/analysis.js` | Analysis view (selection, estimate, results) |
+| `src/download.js` | Download view (usernames, download progress) |
 | `serve.mjs`, `engine.mjs` | Local server with the analysis API, and the Stockfish (UCI) wrapper |
 | `build.mjs` | Build script |
 | `data/` | Your games, backups and `evals.json` (git-ignored) |

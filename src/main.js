@@ -2,6 +2,7 @@ import { Chessground } from 'chessground';
 import { Chess, SQUARES } from 'chess.js';
 import { buildIndex, keyAfter, filterGames, statsFor, START_KEY, MAX_PLY } from './explorer.js';
 import { initAnalysis } from './analysis.js';
+import { initDownload } from './download.js';
 
 const positionKey = (c) => keyAfter(c.history({ verbose: true }).map((m) => m.from + m.to + (m.promotion || '')));
 
@@ -19,8 +20,11 @@ function localDay(iso) {
 // ---------- data ----------
 const data = window.EXPLORER_DATA;
 if (!data || !data.games || !data.games.length) {
+  // No games yet: show only the Download view so usernames can be entered and games fetched.
   document.body.dataset.empty = '1';
-  throw new Error('No games loaded. Run: npm run download');
+  $('view-download').hidden = false;
+  initDownload({ games: [] });
+  throw new Error('No games loaded yet.');
 }
 const F = Object.fromEntries(data.fields.map((f, i) => [f, i]));
 const games = data.games.map((row) => {
@@ -329,10 +333,11 @@ $('date-to').max = lastDay;
 $('date-from').placeholder = firstDay;
 $('date-to').placeholder = lastDay;
 function showView(v) {
-  prefs.view = v === 'analysis' ? 'analysis' : 'explorer';
+  prefs.view = ['analysis', 'download'].includes(v) ? v : 'explorer';
   savePrefs();
   $('view-explorer').hidden = prefs.view !== 'explorer';
   $('view-analysis').hidden = prefs.view !== 'analysis';
+  $('view-download').hidden = prefs.view !== 'download';
   for (const b of document.querySelectorAll('[data-view]')) {
     b.classList.toggle('on', b.dataset.view === prefs.view);
     b.setAttribute('aria-selected', String(b.dataset.view === prefs.view));
@@ -356,6 +361,7 @@ initAnalysis({
     setPath(sans);
   },
 });
+initDownload({ games });
 showView(prefs.view);
 // Exposed for debugging and tests.
 window.explorer = { games, index, get cg() { return cg; }, get active() { return active; }, positionKey: () => positionKey(chess), START_KEY };

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening Explorer</title>
+  <link rel="stylesheet" href="dist/app.css">
+  <script src="data/games.js"></script>
+  <script src="dist/app.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <div class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <h2>Opening Explorer</h2>
+    <div class="bar-right">
+      <span id="filter-count" class="muted small"></span>
+      <span id="updated" class="muted small"></span>
+    </div>
+  </header>
+
+  <div class="filters">
+    <div class="seg" role="group" aria-label="My color">
+      <button data-color="white">White</button>
+      <button data-color="black">Black</button>
+      <button data-color="both">Both</button>
+    </div>
+    <div class="seg" role="group" aria-label="Platform">
+      <button data-source="all">All sites</button>
+      <button data-source="chesscom">chess.com</button>
+      <button data-source="lichess">Lichess</button>
+    </div>
+    <div class="chips" role="group" aria-label="Time control">
+      <button data-time="bullet">Bullet</button>
+      <button data-time="blitz">Blitz</button>
+      <button data-time="rapid">Rapid</button>
+      <button data-time="classical">Classical</button>
+      <button data-time="daily">Daily</button>
+    </div>
+  </div>
+
+  <main class="layout">
+    <div class="board-col">
+      <div class="board-shell"><div id="board"></div></div>
+      <div class="controls">
+        <button id="btn-start" class="icon" title="Start (↑)"><svg viewBox="0 0 24 24"><path d="M6 5v14M18 6l-8 6 8 6z"/></svg></button>
+        <button id="btn-back" class="icon" title="Back (←)"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button id="btn-forward" class="icon" title="Forward (→)"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button id="btn-reset" class="ghost" title="Back to the starting position and clear forward moves">Reset</button>
+        <button id="btn-flip" class="ghost" title="Flip board (F)">Flip</button>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div id="path" class="path"></div>
+      <table class="moves">
+        <thead><tr><th>Move</th><th class="c-share"></th><th class="c-games">Games</th><th class="c-bar">Won · Drawn · Lost</th></tr></thead>
+        <tbody id="moves-body"></tbody>
+        <tfoot><tr id="moves-total"></tr></tfoot>
+      </table>
+      <div id="recent-wrap" class="recent-wrap">
+        <h3>Recent games</h3>
+        <div id="recent" class="recent"></div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="empty-state">
+    <div class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <h1>No games yet</h1>
+    <p class="muted">Download your games first, then reload this page:</p>
+    <pre>npm run download</pre>
+  </div>
+</body>
+</html>

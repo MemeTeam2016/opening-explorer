@@ -1,0 +1,21 @@
+{
+  "name": "opening-explorer",
+  "version": "1.0.0",
+  "description": "Local explorer for your own chess.com and Lichess games",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "download": "node download.mjs",
+    "build": "node build.mjs",
+    "serve": "node serve.mjs",
+    "start": "node build.mjs && start \"\" index.html"
+  },
+  "dependencies": {
+    "chess.js": "1.4.0",
+    "chessground": "9.2.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
